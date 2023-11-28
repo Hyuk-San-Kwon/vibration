@@ -4,10 +4,13 @@ import bluetooth
 import random
 import struct
 import time
-from machine import Pin
+from machine import Pin, PWM
 from ble_advertising import advertising_payload
 from servo_ctrl import servo_Angle
 from micropython import const
+# from motor_speed import set_motor_speed
+import utime
+from motor_speed import set_motor_speed
 
 
 ID = None
@@ -76,18 +79,50 @@ class BLESimplePeripheral:
 
     def on_write(self, callback):
         self._write_callback = callback
+        
+# set pins
+en1 = Pin(4, Pin.OUT)
+en1(1)  # motor 1 enable, set value 0 to disable
+motor1a = Pin(2, Pin.OUT)
+motor1b = Pin(3, Pin.OUT)
+
+en2 = Pin(8, Pin.OUT)
+en2(2)
+motor2a = Pin(6, Pin.OUT)
+motor2b = Pin(7, Pin.OUT)
+
+pwm_1 = PWM(Pin(2))
+pwm_1.freq(20000)
+
+pwm_2 = PWM(Pin(6))
+pwm_2.freq(20000)
 
 
 def demo():
     ble = bluetooth.BLE()
     p = BLESimplePeripheral(ble)
  
-
+    motor1a(1)
+    motor1b(0)
+    time.sleep(2) 
+    motor2a(1)
+    motor2b(0)
+    time.sleep(2)    
+    print('motor on')
+     
+    
     def write(v):
-
+        
         v = int(v)
         print("RX", v)
-        servo_Angle(v)
+        
+        if v > 100:
+            motor1b.low()
+            set_motor_speed(v, motor1b, motor2b, pwm_1, pwm_2)
+            print("Set motor " + str(v))
+        else: 
+            servo_Angle(v)
+            print("Set servo " + str(v))
         
     p.on_write(write)
     
@@ -95,7 +130,8 @@ def demo():
     while True:
         
         print(i)
-        time.sleep_ms(5000)
+        # forward()
+        utime.sleep(5)
         i += 5
         
  
